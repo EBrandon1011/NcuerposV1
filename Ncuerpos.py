@@ -18,6 +18,7 @@ class Mond():
     vx=vy=0.0
     r=0.0
         
+    #Aceleración a_ki de un cuerpo k sobre un cuerpo i
     def aceleracion(self, otro):        #Aceleración k-i
         xki=self.x-otro.x
         yki=self.y-otro.y
@@ -37,14 +38,15 @@ class Mond():
 def iteraciones(astros):
     counter=0
     dt=24*3600  #1 día
+    NI=400  #Número de iteraciones
     arch={}
     for cuerpoi in astros:
         arch[cuerpoi.nombre]=open("Newton{}.dat".format(cuerpoi.nombre), "w")  #Archivos de texto
         
-    while counter<400:
+    while counter<NI:
         counter+=1
-        accel={}    #Aceleración sobre el cuerpo i
-        for cuerpoi in astros:      #Sumatoria aceleraciones sobre k!=i
+        accel={}    #Aceleración del cuerpo i
+        for cuerpoi in astros:      #Sumatoria de aceleraciones a_ki sobre todos los k \neq i
             axi=0
             ayi=0
             if cuerpoi is 'Sol':
@@ -63,7 +65,7 @@ def iteraciones(astros):
             axi, ayi=accel[cuerpoi]
             cuerpoi.vx+=axi*dt      #Algoritmo v(n+1)=v(n)+a*dt
             cuerpoi.vy+=ayi*dt
-            cuerpoi.x+=cuerpoi.vx*dt
+            cuerpoi.x+=cuerpoi.vx*dt    # x(n+1)=x(n)+v(n)*dt
             cuerpoi.y+=cuerpoi.vy*dt
             r=np.sqrt(cuerpoi.x**2+cuerpoi.y**2)
             ang=np.arctan(cuerpoi.y/cuerpoi.x)
@@ -75,6 +77,9 @@ def iteraciones(astros):
         arch[cuerpoi.nombre].closed
                         
 def main():
+    #Condiciones iniciales:
+    #Por el momento, no son precisos.
+    
     sol = Mond()        #Sol en el origen
     sol.nombre = 'Sol'
     sol.masa = 1.98892 * 10**30
