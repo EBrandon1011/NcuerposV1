@@ -26,7 +26,7 @@ class Mond():
         mk=otro.masa
         lmki=np.sqrt(G*mk/ao)   #Longitud característica
         Xki=lmki/rki
-        funcion=Xki**2    #Función f(\chi) Newton
+        funcion=Xki**2    #Función f(\chi) Newton (Utilizado para hacer los tests.
         #funcion=Xki*(1+Xki+Xki**2+Xki**3)/(1+Xki+Xki**2)    #Función f(\chi) MOND
         ax=-ao*funcion*xki/rki
         ay=-ao*funcion*yki/rki
