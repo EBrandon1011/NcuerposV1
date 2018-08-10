@@ -1,107 +1,132 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Mar 28 14:17:28 2018
+Primera edición subido el 23 de abril de 2018
 
-@author: brandon
+@author: eddybrandon
 """
 
 import numpy as np
 from scipy.constants import G
 
-AU = (149597870700)     # Definiendo una ua
+AU = (149597870700)     # Definiendo una UA
 ao=1.2*10**(-10)         #Constante a_o
 
 class Mond():
-    nombre='ninguno'    #será dado después
+    nombre='ninguno'    #Será dado después.
     masa=0.0
     x=y=0.0
     vx=vy=0.0
     r=0.0
         
-    #Aceleración a_ki de un cuerpo k sobre un cuerpo i
+    #Aceleración a_ki de un cuerpo k sobre un cuerpo i:
     def aceleracion(self, otro):        #Aceleración k-i
         xki=self.x-otro.x
         yki=self.y-otro.y
-        rki=np.sqrt(xki**2+yki**2)
-        #ri=np.sqrt(self.x**2+self.y**2)     #Módulo radio r_i
-        mk=otro.masa
-        lmki=np.sqrt(G*mk/ao)   #Longitud característica
-        Xki=lmki/rki
-        funcion=Xki**2    #Función f(\chi) Newton (Utilizado para hacer los tests.
-        #funcion=Xki*(1+Xki+Xki**2+Xki**3)/(1+Xki+Xki**2)    #Función f(\chi) MOND
+        zki=self.z-otro.z
+        rki=np.sqrt(xki**2+yki**2+zki**2) #Módulo radio r_i
+        mk=otro.masa            #Masa del otro cuerpo.
+        lmki=np.sqrt(G*mk/ao)   #Longitud característica.
+        Xki=lmki/rki            #Cantidad adimensional.
+        #funcion=Xki**2    #Función f(\chi) Newton (Utilizado para hacer los tests).
+        funcion=Xki*(1+Xki+Xki**2+Xki**3)/(1+Xki+Xki**2)    #Función f(\chi) MOND
         ax=-ao*funcion*xki/rki
         ay=-ao*funcion*yki/rki
-        #angi=np.arctan(self.y/self.x)     #Ángulo de r_i
-        return ax, ay
+        az=-ao*funcion*zki/rki
+        return ax, ay, az
         
         
-def iteraciones(astros):
+def EulerN(astros):
     counter=0
-    dt=24*3600  #1 día
-    NI=400  #Número de iteraciones
+    dt=24*3600   #Tamaño de paso = 1 día
+    NI=5000      #Número de iteraciones
     arch={}
     for cuerpoi in astros:
-        arch[cuerpoi.nombre]=open("Newton{}.dat".format(cuerpoi.nombre), "w")  #Archivos de texto
+        arch[cuerpoi.nombre]=open("Newton{}.dat".format(cuerpoi.nombre), "w")  #Archivos de texto de salida.
         
     while counter<NI:
         counter+=1
         accel={}    #Aceleración del cuerpo i
         for cuerpoi in astros:      #Sumatoria de aceleraciones a_ki sobre todos los k \neq i
-            axi=0
-            ayi=0
-            if cuerpoi is 'Sol':
+            axi=ayi=azi=0
+            if cuerpoi is 'Sol':    #En esta versión se fijó la posición del Sol en el origen.
                 axi=0
                 ayi=0
+                azi=0
             else:
                 for cuerpok in astros:
                     if cuerpok is cuerpoi:
                         continue
-                    axki, ayki=cuerpoi.aceleracion(cuerpok)
+                    axki, ayki, azki=cuerpoi.aceleracion(cuerpok)
                     axi+=axki
                     ayi+=ayki
-            accel[cuerpoi]=(axi, ayi)
-                
+                    azi+=azki
+            accel[cuerpoi]=(axi, ayi, azi)
+            
+        #MÉTODO DE EULER
         for cuerpoi in astros:
-            axi, ayi=accel[cuerpoi]
+            axi, ayi, azi=accel[cuerpoi]
             cuerpoi.vx+=axi*dt      #Algoritmo v(n+1)=v(n)+a*dt
             cuerpoi.vy+=ayi*dt
+            cuerpoi.vz+=azi*dt
             cuerpoi.x+=cuerpoi.vx*dt    # x(n+1)=x(n)+v(n)*dt
             cuerpoi.y+=cuerpoi.vy*dt
-            r=np.sqrt(cuerpoi.x**2+cuerpoi.y**2)
-            ang=np.arctan(cuerpoi.y/cuerpoi.x)
-            escribir='{:>11.8f} {:>11.8f}'.format(r/AU, ang) #Datos r, theta
-            print(cuerpoi.nombre +': '+ escribir)
-            arch[cuerpoi.nombre].write(escribir+"\n")            
+            cuerpoi.z+=cuerpoi.vz*dt
+            escribir='{:>11.8f} {:>11.8f} {:>11.8f}'.format(cuerpoi.x/AU, cuerpoi.y/AU, cuerpoi.z/AU) #Datos x, y, z.
+            arch[cuerpoi.nombre].write(escribir+"\n")     #Guarda las posiciones x_n, y_n, z_n en un archivo de texto para cada cuerpo.       
 
     for cuerpoi in astros:
         arch[cuerpoi.nombre].closed
-                        
+
+#Lee las condiciones iniciales de cada planeta            
+def condiciones(astros):
+    for cuerpoi in astros:
+        file=open('datos{}.dat'.format(cuerpoi.nombre), 'r')
+        cuerpoi.masa = float(file.readline())       #Masa en [kg]
+        cuerpoi.x = float(file.readline())*1000     #Posición en [km]
+        cuerpoi.y = float(file.readline())*1000
+        cuerpoi.z = float(file.readline())*1000
+        cuerpoi.vx = float(file.readline())*1000    #Velocidad en [km/s]
+        cuerpoi.vy = float(file.readline())*1000
+        cuerpoi.vz = float(file.readline())*1000
+        file.close        
+        
 def main():
     #Condiciones iniciales:
-    #Por el momento, no son precisos.
     
-    sol = Mond()        #Sol en el origen
+    sol = Mond()       
     sol.nombre = 'Sol'
-    sol.masa = 1.98892 * 10**30
-    sol.x=0.0
-    sol.vy=0.0
+
+    mercurio = Mond()
+    mercurio.nombre = 'Mercurio'
+
+    venus = Mond()
+    venus.nombre = 'Venus'
 
     tierra = Mond()
     tierra.nombre = 'Tierra'
-    tierra.masa = 5.9742 * 10**24
-    tierra.x = -1*AU
-    tierra.vy = 29.783 * 1000  
+
+    marte = Mond()
+    marte.nombre = 'Marte'
+  
+    jupiter = Mond()
+    jupiter.nombre = 'Jupiter'
+ 
+    saturno = Mond()
+    saturno.nombre = 'Saturno'
+
+    urano = Mond()
+    urano.nombre = 'Urano'
     
-    venus = Mond()
-    venus.nombre = 'Venus'
-    venus.masa = 4.8685 * 10**24
-    venus.x = 0.723 * AU
-    venus.vy = -35.02 * 1000
+    neptuno = Mond()
+    neptuno.nombre = 'Neptuno'
     
-    iteraciones([sol, tierra, venus])
+    body = Mond()   #Cometa o Asteroide
+    body.nombre = '16R2'
+       
+    astros=[sol, mercurio, venus, tierra, marte, jupiter, saturno, urano, neptuno, body]
+    condiciones(astros)	        #Condiciones iniciales.
+    EulerN(astros)              #Aplicación del método de Euler.
     
 if __name__ == '__main__':
     main()
-    
-    
-    
+   
